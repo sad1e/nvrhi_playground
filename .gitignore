@@ -12,4 +12,4 @@ _deps
 
 bin/
 build*/
-.vs
+.cache/
