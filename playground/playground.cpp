@@ -32,7 +32,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeviceManager* deviceManager = DeviceManager::Create(api);
 	const char* apiString = nvrhi::utils::GraphicsAPIToString(deviceManager->GetGraphicsAPI());
 
-	std::string windowTitle = "NVRHI Playground (" + std::string(apiString) + ")";
+	std::string windowTitle = "Playground (" + std::string(apiString) + ")";
 
 	if (!deviceManager->CreateWindowDeviceAndSwapChain(deviceParams, windowTitle.c_str()))
 	{

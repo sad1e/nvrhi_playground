@@ -14,7 +14,7 @@ class PlaygroundUI : public ImGui_Renderer
 public:
 	PlaygroundUI(DeviceManager* devmgr, std::shared_ptr<PlaygroundApp> app);
 
-	virtual void buildUI() override {}
+	virtual void buildUI() override;
 
 private:
 };

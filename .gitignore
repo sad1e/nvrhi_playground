@@ -13,3 +13,4 @@ _deps
 bin/
 build*/
 .cache/
+VS20*CL/
