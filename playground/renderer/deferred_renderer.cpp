@@ -3,14 +3,30 @@
 #include <stdexcept>
 #include <utility>
 #include <donut/engine/View.h>
+#include <donut/engine/Scene.h>
+#include <donut/render/GBufferFillPass.h>
+#include <donut/render/DrawStrategy.h>
+#include <nvrhi/nvrhi.h>
 
-DeferredRenderer::DeferredRenderer(DeviceManager* deviceManager)
+bool RenderTargets::IsUpdateRequired(uint2 size, uint sampleCount) const
+{
+	if (any(m_Size != size) || m_SampleCount != sampleCount)
+		return true;
+
+	return false;
+}
+
+DeferredRenderer::DeferredRenderer(DeviceManager* deviceManager, ShaderFactory* shaderFactory)
     : device_manager_(deviceManager)
+    , shader_factory_(shaderFactory)
+    , binding_cache_(deviceManager->GetDevice())
 {
 	if (deviceManager == nullptr)
 		throw std::invalid_argument("Invalid device manager.");
 
-	graphics_command_list_ = deviceManager->GetDevice()->createCommandList();
+	nvrhi::IDevice* device = deviceManager->GetDevice();
+	graphics_command_list_ = device->createCommandList();
+	common_render_pass_ = std::make_shared<CommonRenderPasses>(device, shaderFactory);
 }
 
 bool DeferredRenderer::InitViews()
@@ -49,7 +65,77 @@ bool DeferredRenderer::InitViews()
 	return topology_changed;
 }
 
-void DeferredRenderer::Render(nvrhi::IFramebuffer* framebuffer)
+void DeferredRenderer::Render(nvrhi::IFramebuffer* framebuffer, Scene* scene)
 {
-	int windowWidth, WindowHeight;
+	if (scene == nullptr)
+		return;
+
+	uint32_t frame_index = device_manager_->GetFrameIndex();
+
+	int windowWidth, windowHeight;
+	device_manager_->GetWindowDimensions(windowWidth, windowHeight);
+
+	nvrhi::Viewport windowViewport = nvrhi::Viewport(float(windowWidth), float(windowHeight));
+	nvrhi::Viewport renderViewport = windowViewport;
+
+	scene->RefreshSceneGraph(frame_index);
+
+	bool exposureResetRequired = false;
+	{
+		uint width = windowWidth;
+		uint height = windowHeight;
+
+		uint sample_count = 1;
+
+		bool need_new_passes = false;
+
+		if (!render_targets_ || render_targets_->IsUpdateRequired(uint2(width, height), sample_count))
+		{
+			render_targets_ = nullptr;
+			binding_cache_.Clear();
+
+			render_targets_ = std::make_unique<RenderTargets>();
+			render_targets_->Init(device_manager_->GetDevice(), uint2(width, height), sample_count, true, true);
+
+			need_new_passes = true;
+		}
+
+		if (InitViews())
+		{
+			need_new_passes = true;
+		}
+
+		if (need_new_passes)
+		{
+			CreateRenderPasses(exposureResetRequired);
+		}
+	}
+
+	graphics_command_list_->open();
+
+	nvrhi::ITexture* framebuffer_texture = framebuffer->getDesc().colorAttachments[0].texture;
+	graphics_command_list_->clearTextureFloat(framebuffer_texture, nvrhi::AllSubresources, nvrhi::Color(0.0f));
+
+	render_targets_->Clear(graphics_command_list_);
+
+	GBufferFillPass::Context gbuffer_context;
+	RenderCompositeView(graphics_command_list_, view_.get(), prev_view_.get(), *render_targets_->GBufferFramebuffer,
+	    scene->GetSceneGraph()->GetRootNode(), *opaque_draw_strategy_, *gbuffer_pass_, gbuffer_context, "GBuffer",
+	    false);
+
+
+	graphics_command_list_->close();
+	device_manager_->GetDevice()->executeCommandList(graphics_command_list_);
+}
+
+void DeferredRenderer::CreateRenderPasses(bool& exposureResetRequired)
+{
+	uint32_t motion_vector_stencil_mask = 0x01;
+
+	nvrhi::IDevice* device = device_manager_->GetDevice();
+
+	GBufferFillPass::CreateParameters gbuffer_params;
+	gbuffer_params.enableMotionVectors = false;
+	gbuffer_params.stencilWriteMask = motion_vector_stencil_mask;
+	gbuffer_pass_ = std::make_unique<GBufferFillPass>(device, common_render_pass_);
 }

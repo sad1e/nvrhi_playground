@@ -11,6 +11,7 @@ namespace donut::app
 namespace donut::engine
 {
 class IView;
-class ShaderFactory;
 class DirectionalLight;
-}
+class Scene;
+class ShaderFactory;
+} // namespace donut::engine
