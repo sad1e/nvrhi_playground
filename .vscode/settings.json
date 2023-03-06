@@ -1,5 +1,7 @@
 {
     "C_Cpp.clang_format_style": "Visual Studio",
     "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
-    "C_Cpp.formatting": "clangFormat"
+    "C_Cpp.formatting": "clangFormat",
+    "editor.fontSize": 12,
+    "editor.fontFamily": "'Maple Mono SC NF', 'Microsoft YaHei UI'"
 }

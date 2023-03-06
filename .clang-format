@@ -31,7 +31,7 @@ BraceWrapping:
   SplitEmptyNamespace: true
 BreakBeforeTernaryOperators: false
 BreakConstructorInitializers: BeforeComma
-ColumnLimit: 180
+ColumnLimit: 120
 DerivePointerBinding: false
 IncludeBlocks: Preserve
 IncludeCategories:
