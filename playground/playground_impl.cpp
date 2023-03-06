@@ -3,9 +3,11 @@
 
 #include <donut/engine/ShaderFactory.h>
 
+#include "./renderer/deferred_renderer.h"
 
-PlaygroundApp::PlaygroundApp(DeviceManager* devmgr)
-    : Super(devmgr)
+
+PlaygroundApp::PlaygroundApp(DeviceManager* deviceManager)
+    : Super(deviceManager)
 {
 
 	auto native_fs = std::make_shared<NativeFileSystem>();
@@ -26,6 +28,8 @@ PlaygroundApp::PlaygroundApp(DeviceManager* devmgr)
 
 	if (current_scene_name_.empty())
 		SetCurrentScene(FindPreferredScene(available_scene_names_, "Sponza.gltf"));
+
+	deferred_renderer_ = std::make_unique<DeferredRenderer>(GetDeviceManager());
 }
 
 void PlaygroundApp::SetCurrentScene(const std::string& sceneName)

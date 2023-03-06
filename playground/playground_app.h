@@ -3,7 +3,6 @@
 #include <donut/app/ApplicationBase.h>
 #include <donut/app/Camera.h>
 #include <donut/app/DeviceManager.h>
-#include <donut/engine/View.h>
 
 #include "playground_forward.h"
 
@@ -16,7 +15,7 @@ class PlaygroundApp : public ApplicationBase
 	using Super = ApplicationBase;
 
 public:
-	PlaygroundApp(DeviceManager* devmgr);
+	PlaygroundApp(DeviceManager* deviceManager);
 
 	void SetCurrentScene(const std::string& sceneName);
 
@@ -27,17 +26,19 @@ public:
 	std::shared_ptr<ShaderFactory> GetShaderFactory() { return shader_factory_; }
 
 private:
-
-
 	std::shared_ptr<RootFileSystem> root_fs_;
 
 	std::vector<std::string> available_scene_names_;
 	std::string current_scene_name_;
 
-
 	std::shared_ptr<ShaderFactory> shader_factory_;
+	std::shared_ptr<DirectionalLight> sun_;
 
-	nvrhi::CommandListHandle command_list_;
 	std::shared_ptr<IView> curr_view_;
 	std::shared_ptr<IView> prev_view_;
+
+	std::unique_ptr<DeferredRenderer> deferred_renderer_;
+
+	nvrhi::CommandListHandle command_list_;
+	ThirdPersonCamera camera_;
 };
