@@ -318,6 +318,7 @@ bool RootFileSystem::unmount(const std::filesystem::path& path)
     return false;
 }
 
+// TODO: Cannot handle when relative path and path is the same.
 bool RootFileSystem::findMountPoint(const std::filesystem::path& path, std::filesystem::path* pRelativePath, IFileSystem** ppFS)
 {
     std::string spath = path.lexically_normal().generic_string();
