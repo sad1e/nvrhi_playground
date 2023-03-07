@@ -18,46 +18,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	nvrhi::GraphicsAPI api = GetGraphicsAPIFromCommandLine(__argc, __argv);
 
-	DeviceCreationParameters deviceParams;
+	DeviceCreationParameters device_params;
 
-	deviceParams.backBufferWidth = 1280;
-	deviceParams.backBufferHeight = 720;
-	deviceParams.swapChainSampleCount = 1;
-	deviceParams.swapChainBufferCount = 3;
-	deviceParams.startFullscreen = false;
-	deviceParams.vsyncEnabled = true;
+	device_params.backBufferWidth = 1280;
+	device_params.backBufferHeight = 720;
+	device_params.swapChainSampleCount = 1;
+	device_params.swapChainBufferCount = 3;
+	device_params.startFullscreen = false;
+	device_params.vsyncEnabled = true;
 
 	std::string sceneName;
 
-	DeviceManager* deviceManager = DeviceManager::Create(api);
-	const char* apiString = nvrhi::utils::GraphicsAPIToString(deviceManager->GetGraphicsAPI());
+	DeviceManager* device_manager = DeviceManager::Create(api);
+	const char* api_string = nvrhi::utils::GraphicsAPIToString(device_manager->GetGraphicsAPI());
 
-	std::string windowTitle = "Playground (" + std::string(apiString) + ")";
+	std::string window_title = "Playground (" + std::string(api_string) + ")";
 
-	if (!deviceManager->CreateWindowDeviceAndSwapChain(deviceParams, windowTitle.c_str()))
+	if (!device_manager->CreateWindowDeviceAndSwapChain(device_params, window_title.c_str()))
 	{
-		log::error("Cannot initialize a %s graphics device with the requested parameters", apiString);
+		log::error("Cannot initialize a %s graphics device with the requested parameters", api_string);
 		return 1;
 	}
 
 	{
-		std::shared_ptr<PlaygroundApp> demo = std::make_shared<PlaygroundApp>(deviceManager);
-		std::shared_ptr<PlaygroundUI> gui = std::make_shared<PlaygroundUI>(deviceManager, demo);
+		std::shared_ptr<PlaygroundApp> demo = std::make_shared<PlaygroundApp>(device_manager);
+		std::shared_ptr<PlaygroundUI> gui = std::make_shared<PlaygroundUI>(device_manager, demo);
 
 		gui->Init(demo->GetShaderFactory());
 
-		deviceManager->AddRenderPassToBack(demo.get());
-		deviceManager->AddRenderPassToBack(gui.get());
+		device_manager->AddRenderPassToBack(demo.get());
+		device_manager->AddRenderPassToBack(gui.get());
 
-		deviceManager->RunMessageLoop();
+		device_manager->RunMessageLoop();
 	}
 
-	deviceManager->Shutdown();
+	device_manager->Shutdown();
 
 #ifdef _DEBUG
-	deviceManager->ReportLiveObjects();
+	device_manager->ReportLiveObjects();
 #endif
-	delete deviceManager;
+	delete device_manager;
 
 	return 0;
 }

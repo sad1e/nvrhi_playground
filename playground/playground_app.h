@@ -20,6 +20,8 @@ public:
 	void SetCurrentScene(const std::string& sceneName);
 
 	virtual bool LoadScene(std::shared_ptr<IFileSystem> fs, const std::filesystem::path& sceneFileName) override;
+	virtual void SceneLoaded() override;
+	virtual void SceneUnloading() override;
 
 	virtual void RenderScene(nvrhi::IFramebuffer* framebuffer) override;
 
@@ -37,7 +39,7 @@ private:
 	std::shared_ptr<IView> curr_view_;
 	std::shared_ptr<IView> prev_view_;
 
-    std::unique_ptr<Scene> scene_;
+	std::unique_ptr<Scene> scene_;
 	std::unique_ptr<DeferredRenderer> deferred_renderer_;
 
 	nvrhi::CommandListHandle command_list_;

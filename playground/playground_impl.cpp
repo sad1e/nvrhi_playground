@@ -2,8 +2,10 @@
 #include "playground_app.h"
 
 #include <donut/core/log.h>
-#include <donut/engine/ShaderFactory.h>
+
 #include <donut/engine/Scene.h>
+#include <donut/engine/ShaderFactory.h>
+#include <donut/engine/TextureCache.h>
 
 #include "./renderer/deferred_renderer.h"
 
@@ -25,6 +27,8 @@ PlaygroundApp::PlaygroundApp(DeviceManager* deviceManager)
 	std::filesystem::path scene_path = "/media/scenes";
 	available_scene_names_ = FindScenes(*root_fs_, scene_path);
 
+	m_TextureCache = std::make_shared<TextureCache>(GetDevice(), root_fs_, nullptr);
+
 	shader_factory_ = std::make_shared<ShaderFactory>(GetDevice(), root_fs_, "/shaders");
 
 	command_list_ = GetDevice()->createCommandList();
@@ -32,7 +36,7 @@ PlaygroundApp::PlaygroundApp(DeviceManager* deviceManager)
 	if (current_scene_name_.empty())
 		SetCurrentScene(FindPreferredScene(available_scene_names_, "Sponza.gltf"));
 
-	deferred_renderer_ = std::make_unique<DeferredRenderer>(GetDeviceManager(), shader_factory_.get());
+	deferred_renderer_ = std::make_unique<DeferredRenderer>(GetDeviceManager(), shader_factory_);
 }
 
 void PlaygroundApp::SetCurrentScene(const std::string& sceneName)
@@ -66,17 +70,54 @@ bool PlaygroundApp::LoadScene(std::shared_ptr<IFileSystem> fs, const std::filesy
 	return false;
 }
 
+void PlaygroundApp::SceneLoaded()
+{
+	std::shared_ptr<DirectionalLight> sun_light;
+
+	for (auto light : scene_->GetSceneGraph()->GetLights())
+	{
+		if (light->GetLightType() == LightType_Directional)
+		{
+			sun_light = std::static_pointer_cast<DirectionalLight>(light);
+			break;
+		}
+	}
+
+	if (!sun_light)
+	{
+		sun_light = std::make_shared<DirectionalLight>();
+		sun_light->angularSize = 0.53f;
+		sun_light->irradiance = 1.f;
+
+		auto node = std::make_shared<SceneGraphNode>();
+		node->SetLeaf(sun_light);
+		sun_light->SetDirection(dm::double3(0.1, -0.9, 0.1));
+		sun_light->SetName("Sun");
+		scene_->GetSceneGraph()->Attach(scene_->GetSceneGraph()->GetRootNode(), node);
+	}
+}
+
+void PlaygroundApp::SceneUnloading()
+{
+	if (deferred_renderer_)
+		deferred_renderer_->Destroy();
+}
+
 void PlaygroundApp::RenderScene(nvrhi::IFramebuffer* framebuffer)
 {
-	command_list_->open();
 
-	nvrhi::ITexture* framebuffer_texture = framebuffer->getDesc().colorAttachments[0].texture;
-	command_list_->clearTextureFloat(framebuffer_texture, nvrhi::AllSubresources, nvrhi::Color(0.4f, 0.2f, 0.6f, 1.0f));
+	deferred_renderer_->Render(framebuffer, scene_.get());
 
-	command_list_->close();
-	GetDevice()->executeCommandList(command_list_);
+	// command_list_->open();
 
-	GetDeviceManager()->SetVsyncEnabled(false);
+	// nvrhi::ITexture* framebuffer_texture = framebuffer->getDesc().colorAttachments[0].texture;
+	// command_list_->clearTextureFloat(framebuffer_texture, nvrhi::AllSubresources, nvrhi::Color(0.4f, 0.2f,
+	// 0.6f, 1.0f));
+
+	// command_list_->close();
+	// GetDevice()->executeCommandList(command_list_);
+
+	// GetDeviceManager()->SetVsyncEnabled(false);
 }
 
 PlaygroundUI::PlaygroundUI(DeviceManager* devmgr, std::shared_ptr<PlaygroundApp> app)

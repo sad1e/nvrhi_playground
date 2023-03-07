@@ -3,11 +3,12 @@
 #include <donut/app/DeviceManager.h>
 #include <donut/app/Camera.h>
 #include <donut/render/GBuffer.h>
+#include <donut/render/GBufferFillPass.h>
+#include <donut/render/DeferredLightingPass.h>
 #include <donut/engine/BindingCache.h>
 
 namespace donut::render
 {
-class GBufferFillPass;
 class InstancedOpaqueDrawStrategy;
 } // namespace donut::render
 
@@ -27,6 +28,9 @@ using namespace donut::render;
 class RenderTargets : public GBufferRenderTargets
 {
 public:
+
+	nvrhi::TextureHandle ShadedColor;
+
 	void Init(nvrhi::IDevice* device,
 	    dm::uint2 size,
 	    dm::uint sampleCount,
@@ -34,6 +38,19 @@ public:
 	    bool useReverseProjection) override
 	{
 		GBufferRenderTargets::Init(device, size, sampleCount, enableMotionVectors, useReverseProjection);
+
+		nvrhi::TextureDesc texture_desc;
+        texture_desc.dimension = nvrhi::TextureDimension::Texture2D;
+        texture_desc.initialState = nvrhi::ResourceStates::UnorderedAccess;
+        texture_desc.keepInitialState = true;
+        texture_desc.debugName = "ShadedColor";
+        texture_desc.isUAV = true;
+        texture_desc.format = nvrhi::Format::RGBA16_FLOAT;
+        texture_desc.width = size.x;
+        texture_desc.height = size.y;
+        texture_desc.sampleCount = sampleCount;
+
+        ShadedColor = device->createTexture(texture_desc);
 	}
 
 	[[nodiscard]] bool IsUpdateRequired(uint2 size, uint sampleCount) const;
@@ -42,14 +59,15 @@ public:
 class DeferredRenderer
 {
 public:
-	DeferredRenderer(DeviceManager* deviceManager, ShaderFactory* shaderFactory);
-	DeferredRenderer(std::nullptr_t) = delete;
-
-	bool InitViews();
+	DeferredRenderer(DeviceManager* deviceManager, std::shared_ptr<ShaderFactory> shaderFactory);
 
 	void Render(nvrhi::IFramebuffer* framebuffer, Scene* scene);
 
+	void Destroy();
+
 private:
+	bool InitViews();
+
     void CreateRenderPasses(bool& exposureResetRequired);
 
 private:
@@ -71,5 +89,6 @@ private:
 
     std::shared_ptr<CommonRenderPasses> common_render_pass_;
 	std::shared_ptr<InstancedOpaqueDrawStrategy> opaque_draw_strategy_;
-	std::shared_ptr<GBufferFillPass> gbuffer_pass_;
+	std::unique_ptr<GBufferFillPass> gbuffer_pass_;
+	std::unique_ptr<DeferredLightingPass> deferred_lighting_pass_;
 };
