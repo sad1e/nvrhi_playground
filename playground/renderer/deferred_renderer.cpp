@@ -34,7 +34,7 @@ DeferredRenderer::DeferredRenderer(DeviceManager* deviceManager, std::shared_ptr
 	opaque_draw_strategy_ = std::make_shared<InstancedOpaqueDrawStrategy>();
 }
 
-void DeferredRenderer::Render(nvrhi::IFramebuffer* framebuffer, Scene* scene)
+void DeferredRenderer::Render(nvrhi::IFramebuffer* framebuffer, Scene* scene, ThirdPersonCamera& camera)
 {
 	if (scene == nullptr)
 		return;
@@ -69,7 +69,7 @@ void DeferredRenderer::Render(nvrhi::IFramebuffer* framebuffer, Scene* scene)
 			need_new_passes = true;
 		}
 
-		if (InitViews())
+		if (InitViews(camera))
 		{
 			need_new_passes = true;
 		}
@@ -121,7 +121,7 @@ void DeferredRenderer::Destroy()
 	binding_cache_.Clear();
 }
 
-bool DeferredRenderer::InitViews()
+bool DeferredRenderer::InitViews(ThirdPersonCamera& camera)
 {
 	float2 rtsize = float2(render_targets_->GetSize());
 
@@ -133,7 +133,7 @@ bool DeferredRenderer::InitViews()
 	float vfov = dm::radians(camera_vertical_fov_);
 	float znear = 0.01f;
 
-	view_matrix = camera_.GetWorldToViewMatrix();
+	view_matrix = camera.GetWorldToViewMatrix();
 
 	bool topology_changed = false;
 
@@ -153,7 +153,9 @@ bool DeferredRenderer::InitViews()
 	planar_view->UpdateCache();
 
 	dm::float3 camera_position = view_matrix.m_translation;
-	camera_.LookAt(camera_position, camera_position + view_matrix.m_linear.row2, view_matrix.m_linear.row1);
+	//camera_.LookAt(camera_position, camera_position + view_matrix.m_linear.row2, view_matrix.m_linear.row1);
+
+	camera.SetView(*planar_view);
 
 	if (topology_changed)
 	{

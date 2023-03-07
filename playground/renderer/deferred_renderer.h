@@ -61,12 +61,12 @@ class DeferredRenderer
 public:
 	DeferredRenderer(DeviceManager* deviceManager, std::shared_ptr<ShaderFactory> shaderFactory);
 
-	void Render(nvrhi::IFramebuffer* framebuffer, Scene* scene);
+	void Render(nvrhi::IFramebuffer* framebuffer, Scene* scene, ThirdPersonCamera& camera);
 
 	void Destroy();
 
 private:
-	bool InitViews();
+	bool InitViews(ThirdPersonCamera& camera);
 
     void CreateRenderPasses(bool& exposureResetRequired);
 
@@ -84,7 +84,6 @@ private:
 
 	std::shared_ptr<IView> view_;
 	std::shared_ptr<IView> prev_view_;
-	FirstPersonCamera camera_;
 	float camera_vertical_fov_ = 60.0f;
 
     std::shared_ptr<CommonRenderPasses> common_render_pass_;

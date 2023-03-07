@@ -27,6 +27,13 @@ public:
 
 	std::shared_ptr<ShaderFactory> GetShaderFactory() { return shader_factory_; }
 
+	// Inputs
+	virtual bool KeyboardUpdate(int key, int scancode, int action, int mods) override;
+	virtual bool MousePosUpdate(double xpos, double ypos) override;
+	virtual bool MouseButtonUpdate(int button, int action, int mods) override;
+	virtual bool MouseScrollUpdate(double xoffset, double yoffset) override;
+	virtual void Animate(float elapsedTimeSeconds) override;
+
 private:
 	std::shared_ptr<RootFileSystem> root_fs_;
 
@@ -41,6 +48,7 @@ private:
 
 	std::unique_ptr<Scene> scene_;
 	std::unique_ptr<DeferredRenderer> deferred_renderer_;
+	std::shared_ptr<DirectionalLight> sun_light_;
 
 	nvrhi::CommandListHandle command_list_;
 	ThirdPersonCamera camera_;

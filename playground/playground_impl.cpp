@@ -33,6 +33,9 @@ PlaygroundApp::PlaygroundApp(DeviceManager* deviceManager)
 
 	command_list_ = GetDevice()->createCommandList();
 
+	camera_.SetMoveSpeed(3.0f);
+	SetAsynchronousLoadingEnabled(true);
+
 	if (current_scene_name_.empty())
 		SetCurrentScene(FindPreferredScene(available_scene_names_, "Sponza.gltf"));
 
@@ -72,27 +75,25 @@ bool PlaygroundApp::LoadScene(std::shared_ptr<IFileSystem> fs, const std::filesy
 
 void PlaygroundApp::SceneLoaded()
 {
-	std::shared_ptr<DirectionalLight> sun_light;
-
 	for (auto light : scene_->GetSceneGraph()->GetLights())
 	{
 		if (light->GetLightType() == LightType_Directional)
 		{
-			sun_light = std::static_pointer_cast<DirectionalLight>(light);
+			sun_light_ = std::static_pointer_cast<DirectionalLight>(light);
 			break;
 		}
 	}
 
-	if (!sun_light)
+	if (!sun_light_)
 	{
-		sun_light = std::make_shared<DirectionalLight>();
-		sun_light->angularSize = 0.53f;
-		sun_light->irradiance = 1.f;
+		sun_light_ = std::make_shared<DirectionalLight>();
+		sun_light_->angularSize = 0.53f;
+		sun_light_->irradiance = 1.f;
 
 		auto node = std::make_shared<SceneGraphNode>();
-		node->SetLeaf(sun_light);
-		sun_light->SetDirection(dm::double3(0.1, -0.9, 0.1));
-		sun_light->SetName("Sun");
+		node->SetLeaf(sun_light_);
+		sun_light_->SetDirection(dm::double3(0.1, -0.9, 0.1));
+		sun_light_->SetName("Sun");
 		scene_->GetSceneGraph()->Attach(scene_->GetSceneGraph()->GetRootNode(), node);
 	}
 }
@@ -101,23 +102,44 @@ void PlaygroundApp::SceneUnloading()
 {
 	if (deferred_renderer_)
 		deferred_renderer_->Destroy();
+
+	if (sun_light_)
+		sun_light_.reset();
 }
 
 void PlaygroundApp::RenderScene(nvrhi::IFramebuffer* framebuffer)
 {
+	deferred_renderer_->Render(framebuffer, scene_.get(), camera_);
+}
 
-	deferred_renderer_->Render(framebuffer, scene_.get());
+bool PlaygroundApp::KeyboardUpdate(int key, int scancode, int action, int mods)
+{
+	camera_.KeyboardUpdate(key, scancode, action, mods);
+	return true;
+}
 
-	// command_list_->open();
+bool PlaygroundApp::MousePosUpdate(double xpos, double ypos)
+{
+	camera_.MousePosUpdate(xpos, ypos);
+	return true;
+}
 
-	// nvrhi::ITexture* framebuffer_texture = framebuffer->getDesc().colorAttachments[0].texture;
-	// command_list_->clearTextureFloat(framebuffer_texture, nvrhi::AllSubresources, nvrhi::Color(0.4f, 0.2f,
-	// 0.6f, 1.0f));
+bool PlaygroundApp::MouseButtonUpdate(int button, int action, int mods)
+{
+	camera_.MouseButtonUpdate(button, action, mods);
+	return true;
+}
 
-	// command_list_->close();
-	// GetDevice()->executeCommandList(command_list_);
+bool PlaygroundApp::MouseScrollUpdate(double xoffset, double yoffset)
+{
+	camera_.MouseScrollUpdate(xoffset, yoffset);
+	return true;
+}
 
-	// GetDeviceManager()->SetVsyncEnabled(false);
+void PlaygroundApp::Animate(float elapsedTimeSeconds)
+{
+	// donut::log::info("=> elapsed time: %.3f\n", elapsedTimeSeconds);
+	camera_.Animate(elapsedTimeSeconds);
 }
 
 PlaygroundUI::PlaygroundUI(DeviceManager* devmgr, std::shared_ptr<PlaygroundApp> app)
